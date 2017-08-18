@@ -22,7 +22,7 @@ print """
 /_/  \___/_/   /_/_/_/\_, /  \_,_/\__/\_,_/_/  \__/___/\__/
                      /___/
                      ifttt
-""";
+"""
 
 #initialize cookie
 path = (r'cookie.txt')
@@ -30,18 +30,41 @@ if (os.path.isfile(path)):
  os.remove(path)
 f = open(path, 'w')
 f.close()
+sucess_eventurl=""
+failed_eventurl=""
+
+
 
 class Ifttt:
+
  def notifi_success(self):
-     print "example"
+     global sucess_eventurl
+     Ifttt.notifi_curl(self, sucess_eventurl)
  notifi_success = classmethod(notifi_success)
 
  def notifi_failed(self):
-     print "example"
+     global failed_eventurl
+     Ifttt.notifi_curl(self, failed_eventurl)
  notifi_failed = classmethod(notifi_failed)
 
- def notifi_curl(self,eventname):
-     print "example"
+ def notifi_curl(self,eventurl):
+     curl = pycurl.Curl()
+     storage = StringIO()
+     curl.setopt(pycurl.URL, eventurl)
+     curl.setopt(pycurl.SSL_VERIFYPEER, False)
+
+     curl.setopt(curl.WRITEFUNCTION, storage.write)
+     success = False;
+     while not (success):
+         try:
+             curl.perform()
+             success = True
+         except pycurl.error:
+             Ifttt.notifi_failed()
+             time.sleep(30)
+     curl.close()
+     content = storage.getvalue()
+     return content
  notifi_curl = classmethod(notifi_curl)
 
 class Pattern:
@@ -74,13 +97,13 @@ class Http:
         curl.setopt(pycurl.COOKIEFILE, (r'cookie.txt'))
         curl.setopt(pycurl.COOKIEJAR, (r'cookie.txt'))
         curl.setopt(curl.WRITEFUNCTION, storage.write)
-        success = False;
+        success = False
         while not(success):
          try:
           curl.perform()
           success = True
          except pycurl.error:
-          commands.getoutput("terminal-notifier -title 'Lobi : インターネット未接続' -message 'インターネット未接続'")
+          Ifttt.notifi_failed()
           time.sleep(30)
         curl.close()
         content = storage.getvalue()
@@ -112,7 +135,7 @@ class Http:
           curl.perform()
           success = True
          except pycurl.error:
-          commands.getoutput("terminal-notifier -title 'Lobi : インターネット未接続' -message 'インターネット未接続'")
+          Ifttt.notifi_failed()
           time.sleep(30)
         curl.close()
         content = storage.getvalue()
@@ -132,7 +155,7 @@ class LobiAPI:
   post_data = 'csrf_token=%s&email=%s&password=%s' % (csrf_token,mail,password)
   #print post_data
   posted = Http.post('https://lobi.co/signin', post_data)
-  print posted;
+  print posted
   if posted.find('ログインに失敗しました') == -1:
    return True
   else:
@@ -157,14 +180,14 @@ class LobiAPI:
     if LobiAPI.Login(inifile.get('settings','email'),inifile.get('settings','password')):
      if(LobiAPI.GetMe() is None):
          print "ログイン失敗.ユーザー名か、パスワードが違います。"
-         exit();
+         exit()
      me = LobiAPI.GetMe()
      #print me
      print "ログイン成功"
      print "ユーザー名 : "+me["name"].encode('utf8')
     else:
      print "ログイン失敗.サーバーにアクセスできませんでした。"
-     exit();
+     exit()
   else:
     print '設定ファイルがありませんでした、記述しておいてください、conf.iniです'
     inifile = ConfigParser.SafeConfigParser()
@@ -185,7 +208,7 @@ cachesize = inifile.getint("settings","cachesize")
 notifi = LobiAPI.GetNotifications()
 ns = list()
 ia = 0
-print ns;
+print ns
 while ia < cachesize:
  ns.insert(ia,notifi["notifications"][ia]["id"])
  print "a"
@@ -194,11 +217,12 @@ i = 0
 while 1 == 1:
  newnotifi = LobiAPI.GetNotifications()
  ia = 0
- print ns;
+ print ns
  while ia <cachesize:
   if newnotifi["notifications"][ia]["id"] not in ns:
    uname = newnotifi["notifications"][ia]["user"]["name"]
-   if 'hogehoge'.find('fuga') > -1:
+   if "racoon" in uname:
+    Ifttt.notifi_success()
 
   ia = ia + 1
  #///
